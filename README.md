@@ -57,3 +57,22 @@ $ objdump -d -Mintel t | grep -A 10 "<main>:"
   4011cf:       e8 6c fe ff ff          call   401040 <__isoc99_scanf@plt>
   4011d4:       0f b6 7d fb             movzx  edi,BYTE PTR [rbp-0x5]
 ```
+
+From the [llvm docs](http://releases.llvm.org/9.0.0/docs/CodeGenerator.html#emitting-function-stack-size-information):
+
+> A section containing metadata on function stack sizes will be emitted when `TargetLoweringObjectFile::StackSizesSection` is not `null`, and `TargetOptions::EmitStackSizeSection` is set (`-stack-size-section`). The section will contain an array of pairs of function symbol values (pointer size) and stack sizes (unsigned `LEB128`). The stack size values only include the space allocated in the function prologue. Functions with dynamic stack allocations are not included
+
+Which is triggered by using the [`-stack-size-section` in `llc`](https://llvm.org/docs/CommandGuide/llc.html#cmdoption-llc-stack-size-section):
+
+> Emit the `.stack_sizes` section which contains stack size metadata. The section contains an array of pairs of function symbol values (pointer size) and stack sizes (unsigned `LEB128`). The stack size values only include the space allocated in the function prologue. Functions with dynamic stack allocations are not included.
+
+You might also be interested in using the [`-Wframe-larger-than` clang argument](https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-wframe-larger-than), which will warn you if one of your stack frames is bigger than the specified amount of bytes:
+
+```shellsession
+$ clang -Wall -Wextra -Wframe-larger-than=100 t.c -o t
+t.c:4:6: warning: stack frame size of 296 bytes in function 'foo' [-Wframe-larger-than=]
+void foo(uint8_t ind) {
+     ^
+1 warning generated.
+```
+
